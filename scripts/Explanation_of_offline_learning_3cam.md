@@ -26,7 +26,7 @@ import random
 
 - **`nav_cloning_pytorch`**:
   - 深層学習を使ったナビゲーション模倣学習用のカスタムモジュール。
-  - ここでは`deep_learning` クラスが利用されています。
+  - ここでは`deep_learning` クラスを利用。
   
 - **`cv2`**: OpenCV。画像の読み込みや処理を担当。
 
@@ -39,7 +39,7 @@ import random
 ---
 
 ### **2. クラス `cource_following_learning_node`**
-このクラスは学習プロセス全体を管理します。
+このクラスは学習プロセス全体を管理。
 
 #### **(1) 初期化 (`__init__` メソッド)**
 
@@ -63,7 +63,7 @@ self.pro = "20241130_12:13:19"  # モデルやデータの識別用
 self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/" + str(self.pro) + "/model" + str(self.model_num) + ".pt")
 ```
 
-- データ保存先のパスを設定。モデルはPyTorchの形式で保存されます（`.pt`）。
+- データ保存先のパスを設定。モデルはPyTorchの形式で保存される（`.pt`）。
 
 ```python
 os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/" + str(self.pro), exist_ok=True)
@@ -112,7 +112,7 @@ self.dl.make_dataset(img_right, target_ang + 0.134)
 ```
 
 - `make_dataset` メソッドを呼び出して、画像とターゲット角度を関連付けたデータセットを作成。
-- 各画像に対応するターゲット角度にオフセットを加えています。
+- 各画像に対応するターゲット角度にオフセットを加える。
 
 ---
 
@@ -170,8 +170,3 @@ if __name__ == '__main__':
 
 2. **ハードコードの削減**
    - パスやプロジェクト名を設定ファイルに外部化。
-
-3. **並列処理**
-   - データの読み込みや前処理にマルチプロセッシングを導入して効率化。
-
-これにより、コードの再利用性や保守性が向上します。

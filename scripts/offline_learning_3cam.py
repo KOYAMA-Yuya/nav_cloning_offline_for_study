@@ -23,7 +23,7 @@ class cource_following_learning_node:
         self.img_left_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/left")
         self.learn_no = 4000
         self.count = 0
-        self.data = 432
+        self.data = 406 #データの数！　angのcsvファイルの最大数かな？ 
         os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
         os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
         

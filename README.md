@@ -13,9 +13,9 @@ roslaunch nav_cloning nav_cloning_sim.launch script:=set_collect.py use_waypoint
 roslaunch nav_cloning nav_cloning_sim.launch script:=run_collect.py use_waypoint_nav:=true
 ```
 - オフライン学習
-    - シェル内で呼び出しているスクリプトのself.proを使用するデータフォルダ名に変更する
-    - スクリプト内のself.dataもデータ数に応じて数値を変更させる
-    - **angフォルダ名とimgフォルダ名は同一名にする**
+    - シェル内で呼び出しているスクリプト(↓の場合はoffline_learning_3cam.py)のself.proを使用するデータフォルダ名に変更する
+    - 同じくスクリプト内のself.dataもデータ数に応じて数値を変更させる
+    - ここで、dataファイル内に存在する**angフォルダ名とimgフォルダ名は同一名にすること**
     - 配置したデータで学習
     ```
     roscd nav_cloning/sh
