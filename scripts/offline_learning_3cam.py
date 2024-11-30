@@ -14,7 +14,7 @@ class cource_following_learning_node:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         # os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time)
         self.model_num = str(sys.argv[1])
-        self.pro = "20241130_12:13:19"   #元のー>"omni_0614" #ここの名前をdataの名前に変えること！
+        self.pro = "20241130_12:13:19"   #元のー>"omni_0614" #ここの名前を走行したdataの名前に変えること！
         self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
         # self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
         self.ang_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")

@@ -22,6 +22,7 @@ roslaunch nav_cloning nav_cloning_sim.launch script:=run_collect.py use_waypoint
     ./learning.sh
     ```  
     - 走行させたデータで学習
+    - コードの説明は nav_cloning_offline_for_study/scripts/Explanation_of_offline_learning_3cam.md にあります
     ```
     roscd nav_cloning/sh
     ./learning_3cam.sh

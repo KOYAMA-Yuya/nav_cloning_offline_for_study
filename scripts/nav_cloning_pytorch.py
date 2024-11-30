@@ -91,7 +91,7 @@ class deep_learning:
         self.transform=transforms.Compose([transforms.ToTensor()])
         self.first_flag =True
         torch.backends.cudnn.benchmark = True
-        self.writer = SummaryWriter(log_dir="/home/y-takahashi/catkin_ws/src/nav_cloning/runs",comment="log_1")
+        self.writer = SummaryWriter(log_dir="/home/yuya/nav_cloning_offline_ws/src/nav_cloning/runs",comment="log_1")
 
     def make_dataset(self,img,target_angle):
         # self.device = torch.device('cpu')
