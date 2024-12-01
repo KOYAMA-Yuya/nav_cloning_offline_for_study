@@ -28,9 +28,10 @@ roslaunch nav_cloning nav_cloning_sim.launch script:=run_collect.py use_waypoint
     ./learning_3cam.sh
     ```
 - 学習したモデルで経路追従できるかテスト
-```
-./test.sh
-```
+    ```
+    roscd nav_cloning/sh
+    ./test.sh
+    ```
 
 ## install
 * 環境 ubuntu20.04, ros noetic
