@@ -1,4 +1,4 @@
----
+
 
 ## 構成要素の解説
 
@@ -11,7 +11,7 @@
   - `script` という名前の引数で、デフォルト値は `nav_cloning_node.py`。
   - 他の値を使いたい場合、`roslaunch` コマンドで `script:=別の値` を渡せる。
 
----
+
 
 ### 2. **シミュレーション環境の設定**
 - シミュレーターとして Gazebo を利用。
@@ -30,7 +30,7 @@
   - `paused=false` により、シミュレーションは起動と同時に実行状態になる。
   - `use_sim_time=true` で、Gazebo のシミュレーション時間を ROS のタイムスタンプとして使用。
 
----
+
 
 ### 3. **ロボットの設定**
 - TurtleBot3 Waffle Pi をシミュレーションに登場するロボットとして設定。
@@ -42,7 +42,7 @@
   - `robot_description`: TurtleBot3のURDFモデルをxacroファイルから生成。
   - `spawn_model`: Gazebo内にモデルをスポーン。位置（`x, y`）や向き（`Y`）は引数から設定。
 
----
+
 
 ### 4. **タイマー付きノードの起動**
 - `timed_roslaunch` を使用し、一定の遅延後に各ノードを起動。
@@ -56,26 +56,11 @@
   - 引数 `script` の値（例: `nav_cloning_node.py`）を渡す。
 
 #### 起動されるノードの詳細
-1. **`nav_cloning.launch`**
+　**`nav_cloning.launch`**
    - ナビゲーション模倣（Cloning）の処理を行うノード。
    - スクリプト名を引数として渡せるよう設定されています。
 
-2. **`turtlebot3_navigation.launch`**
-   - マップファイルやウェイポイント情報を使用してナビゲーションを実行。
-   - 使用するマップやウェイポイントは引数から指定可能です:
-     ```xml
-     map_file:=$(find nav_cloning)/maps/$(arg map_file)
-     waypoints_file:=$(find nav_cloning)/waypoint/$(arg waypoints_file)
-     ```
 
-3. **`conv.launch`**
-   - `conv_for_piechart` パッケージの処理を実行。
-   - 模倣学習のデータ変換や可視化に関係する可能性？　あとで確認。
-
-4. **`start_wp_nav.launch`**
-   - ウェイポイントナビゲーションを開始するためのノード。
-
----
 
 ### 5. **模倣学習関連の設定**
 - `rosparam` で模倣学習のモードやパラメータを設定:
@@ -85,7 +70,7 @@
   - パラメータ `/nav_cloning_node/num` を引数 `num` で指定（デフォルト値は1）。
   - 例えば、異なるデータセット番号を指定する用途が考えられます。
 
----
+
 
 ### 6. **その他の設定**
 - 初期位置の設定:
@@ -101,4 +86,3 @@
   <arg name="use_waypoint_nav" default="true" />
   ```
 
----
