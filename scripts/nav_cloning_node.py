@@ -55,12 +55,12 @@ class nav_cloning_node:
         self.cv_right_image = np.zeros((480,640,3), np.uint8)
         self.learning = True
         self.select_dl = False
-        self.pro = "694_520_01hz"
+        self.pro = "20241130_12:13:19" #ここをモデル名に変更！
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/result_'+str(self.mode)+'/'
         self.save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/model/'+str(self.mode) + '/' + self.start_time
         self.save_model_path = self.save_path + '/model'+str(self.num)+".pt"
-        self.load_path = "/home/y-takahashi/catkin_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.num)+".pt"
+        self.load_path = "/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.num)+".pt"
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
