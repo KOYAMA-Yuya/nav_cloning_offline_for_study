@@ -5,7 +5,7 @@ import shutil
 
 if __name__ == '__main__':
     arr = []
-    child_dir = '/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/analysis/img/corner2/'
+    child_dir = '/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/analysis/img/corner2/'
     i = 3231
     for file_name in range(513):
         regex = re.compile(str(i))

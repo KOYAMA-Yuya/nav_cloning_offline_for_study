@@ -12,7 +12,7 @@ class target_path:
         self.image = cv2.imread(roslib.packages.get_pkg_dir('nav_cloning')+'/maps/willowgarage.pgm')
         self.image_resize = cv2.resize(self.image, (600, 600))
         self.file_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/path/path_willow_shirasu.csv'
-        self.save_path = "/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/analysis/pos_test,pgm"
+        self.save_path = "/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/analysis/pos_test,pgm"
         self.image_name = ""
         self.path_x = []
         self.path_y = []

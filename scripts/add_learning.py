@@ -11,17 +11,17 @@ class cource_following_learning_node:
     def __init__(self):
         self.dl = deep_learning(n_action=1)
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        os.makedirs("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/" + self.start_time)
-        self.save_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/model/")
-        self.ang_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/ang/00_01/")
-        self.img_right_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/00_01/right")
-        self.img_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/00_01/center")
-        self.img_left_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/00_01/left")
+        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time)
+        self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/")
+        self.ang_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/ang/00_01/")
+        self.img_right_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/00_01/right")
+        self.img_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/00_01/center")
+        self.img_left_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/00_01/left")
         self.learn_no = 4000
         self.pos_no = 0
         self.data_num = 1677
         
-        # self.dl.save("/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/")
+        # self.dl.save("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/")
 
     def learn(self):
         ang_list = []
@@ -86,13 +86,13 @@ class cource_following_learning_node:
             self.dl.make_dataset(img, target_ang)
             self.dl.make_dataset(img_left, target_ang - 0.2)
             print("dataset:" + str(k))
-        # joblib.dump((self.dataset_right, self.dataset_center, self.dataset_left), open('/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'wb'), compress=6)
+        # joblib.dump((self.dataset_right, self.dataset_center, self.dataset_left), open('/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'wb'), compress=6)
 
-        # self.dataset_right, self.dataset_center, self.dataset_left =joblib.load(open('/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'rb'))
+        # self.dataset_right, self.dataset_center, self.dataset_left =joblib.load(open('/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'rb'))
         for l in range(self.learn_no):
             loss = self.dl.trains()
             print("train" + str(l))
-            with open("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/" + self.start_time + "/loss.csv", 'a') as fw:
+            with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time + "/loss.csv", 'a') as fw:
                 writer = csv.writer(fw, lineterminator='\n')
                 line = [str(loss)]
                 writer.writerow(line)

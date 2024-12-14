@@ -49,7 +49,10 @@
 
   <!-- <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model mobile_base -x -10 -y 28.5 -z 0.0 -Y -1.57 -param robot_description" /> -->
 
-  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model mobile_base -x $(arg robot_x) -y $(arg robot_y) -z 0.0 -Y $(arg robot_Y) -param robot_description" />
+  <!-- <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model mobile_base -x $(arg robot_x) -y $(arg robot_y) -z 0.0 -Y $(arg robot_Y) -param robot_description" /> -->
+  
+  <!--スポーンの確認のため取り合えずスポーン位置を全て0に-->
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model mobile_base -x 0.0 -y 0.0 -z 0.0 -Y 0.0 -param robot_description" />
 
   <node pkg="timed_roslaunch" type="timed_roslaunch.sh"
         args="5 nav_cloning nav_cloning.launch script:=$(arg script)"

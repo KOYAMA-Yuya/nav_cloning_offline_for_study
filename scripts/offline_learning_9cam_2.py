@@ -12,22 +12,22 @@ class cource_following_learning_node:
     def __init__(self):
         self.dl = deep_learning(n_action=1)
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        # os.makedirs("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/" + self.start_time)
+        # os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time)
         self.model_num = str(sys.argv[1])
         self.pro = "9cam"
-        self.save_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
-        # self.save_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
-        self.ang_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")
-        # self.img_right_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
-        self.img_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
-        # self.img_left_path = ("/home/y-takahashi/catkin_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
+        self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
+        # self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
+        self.ang_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")
+        # self.img_right_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
+        self.img_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
+        # self.img_left_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
         self.learn_no = 4000
         self.count = 0
         self.data = 1689
-        os.makedirs("/home/y-takahashi/catkin_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
-        os.makedirs("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
+        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
+        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
         
-        # self.dl.save("/home/y-takahashi/catkin_ws/src/nav_cloning/data/result/")
+        # self.dl.save("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/")
 
     def learn(self):
         ang_list = []
@@ -60,8 +60,8 @@ class cource_following_learning_node:
         for l in range(self.learn_no):
             loss = self.dl.trains(self.count)
             print("train" + str(l))
-            with open("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/"+str(self.model_num)+".csv", 'a') as fw:
-            # with open("/home/y-takahashi/catkin_ws/src/nav_cloning/data/loss/01/"+str(self.model_num)+".csv", 'a') as fw:
+            with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/"+str(self.model_num)+".csv", 'a') as fw:
+            # with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/01/"+str(self.model_num)+".csv", 'a') as fw:
                 writer = csv.writer(fw, lineterminator='\n')
                 line = [str(loss)]
                 writer.writerow(line)
