@@ -69,6 +69,7 @@ class nav_cloning_node:
             print(self.load_path)
             self.dl.load(self.load_path)
         # self.model_num = 1
+        # self.model_num = 1
         self.previous_reset_time = 0
         self.pos_x = 0.0
         self.pos_y = 0.0
