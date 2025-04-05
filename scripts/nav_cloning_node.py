@@ -33,16 +33,18 @@ class nav_cloning_node:
         self.num = rospy.get_param("/nav_cloning_node/num", "1")
         self.action_num = 1
         self.dl = deep_learning(n_action = self.action_num)
+
+        #画像の受信
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
+        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)                             
         self.image_left_sub = rospy.Subscriber("/camera_left/rgb/image_raw", Image, self.callback_left_camera)
         self.image_right_sub = rospy.Subscriber("/camera_right/rgb/image_raw", Image, self.callback_right_camera)
+        
         self.vel_sub = rospy.Subscriber("/nav_vel", Twist, self.callback_vel)
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.srv = rospy.Service('/training', SetBool, self.callback_dl_training)
         self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
-        # self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path)
         self.path_sub = rospy.Subscriber("/move_base/GlobalPlanner/plan", Path, self.callback_path)
         self.waypoint_num = rospy.Subscriber("/count_waypoint", Int8, self.callback_waypoint)
         self.min_distance = 0.0
@@ -53,6 +55,8 @@ class nav_cloning_node:
         self.cv_image = np.zeros((480,640,3), np.uint8)
         self.cv_left_image = np.zeros((480,640,3), np.uint8)
         self.cv_right_image = np.zeros((480,640,3), np.uint8)
+
+        #学習とテスト
         self.learning = True
         self.select_dl = False
         self.pro = "20241130_12:13:19" #ここをモデル名に変更！
@@ -93,6 +97,7 @@ class nav_cloning_node:
         except CvBridgeError as e:
             print(e)
 
+    #位置情報の取得
     def callback_tracker(self, data):
         self.pos_x = data.pose.pose.position.x
         self.pos_y = data.pose.pose.position.y
@@ -168,10 +173,12 @@ class nav_cloning_node:
         #     os.system('killall roslaunch')
         #     sys.exit()
 
+        #学習とテスト
         if self.learning:
             target_action = self.action
             distance = self.min_distance
 
+            #モードによって動作わけ
             if self.mode == "manual":
                 if distance > 0.1:
                     self.select_dl = False
@@ -238,6 +245,7 @@ class nav_cloning_node:
 
             # end mode
 
+            #ロボットの制御
             print(str(self.episode) + ", training, loss: " + str(loss) + ", angle_error: " + str(angle_error) + ", distance: " + str(distance))
             self.episode += 1
             line = [str(self.episode), "training", str(loss), str(angle_error), str(distance), str(self.pos_x), str(self.pos_y), str(self.pos_the)]
@@ -263,6 +271,7 @@ class nav_cloning_node:
             self.vel.angular.z = target_action
             self.nav_pub.publish(self.vel)
 
+        #画像の表示
         temp = copy.deepcopy(img)
         cv2.imshow("Resized Image", temp)
         temp = copy.deepcopy(img_left)
@@ -275,6 +284,7 @@ if __name__ == '__main__':
     rg = nav_cloning_node()
     DURATION = 0.2
     r = rospy.Rate(1 / DURATION)
+    #ROSがシャットダウンするまで処理を繰り返す
     while not rospy.is_shutdown():
         rg.loop()
         r.sleep()

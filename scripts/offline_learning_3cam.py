@@ -12,22 +12,22 @@ class cource_following_learning_node:
     def __init__(self):
         self.dl = deep_learning(n_action=1)
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        # os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time)
+        # os.makedirs("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/" + self.start_time)
         self.model_num = str(sys.argv[1])
-        self.pro = "20241130_12:13:19"   #元のー>"omni_0614" #ここの名前を走行したdataの名前に変えること！
-        self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
-        # self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
-        self.ang_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")
-        self.img_right_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/right")
-        self.img_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
-        self.img_left_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/left")
+        self.pro = "20250404_22:09:55"   #元のー>"omni_0614" #ここの名前を走行したdataの名前に変えること！
+        self.save_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
+        # self.save_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
+        self.ang_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")
+        self.img_right_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/img/"+str(self.pro)+"/right")
+        self.img_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
+        self.img_left_path = ("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/img/"+str(self.pro)+"/left")
         self.learn_no = 4000
         self.count = 0
-        self.data = 406 #データの数！　angのcsvファイルの最大数かな？ 
-        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
-        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
+        self.data = 298 #データの数！　angのcsvファイルの最大数かな？ 
+        os.makedirs("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
+        os.makedirs("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
         
-        # self.dl.save("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/")
+        # self.dl.save("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/result/")
 
     def learn(self):
         ang_list = []
@@ -155,8 +155,8 @@ class cource_following_learning_node:
         for l in range(self.learn_no):
             loss = self.dl.trains(self.count)
             print("train" + str(l))
-            with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/"+str(self.model_num)+".csv", 'a') as fw:
-            # with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/01/"+str(self.model_num)+".csv", 'a') as fw:
+            with open("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/"+str(self.model_num)+".csv", 'a') as fw:
+            # with open("/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/01/"+str(self.model_num)+".csv", 'a') as fw:
                 writer = csv.writer(fw, lineterminator='\n')
                 line = [str(loss)]
                 writer.writerow(line)

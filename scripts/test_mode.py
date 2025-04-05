@@ -61,10 +61,10 @@ class nav_cloning_node:
         self.learning = False
         self.select_dl = False
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        self.pro = "omni_0614"
-        # self.load_path = "/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model1.pt"
-        self.load_path = "/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.num)+".pt"
-        self.score = "/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/score/"+str(self.pro)+".csv"
+        self.pro = "20250404_22:09:55"
+        # self.load_path = "/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model1.pt"
+        self.load_path = "/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.num)+".pt"
+        self.score = "/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/score/"+str(self.pro)+".csv"
         if self.learning == False:
             print(self.load_path)
             self.dl.load(self.load_path)
