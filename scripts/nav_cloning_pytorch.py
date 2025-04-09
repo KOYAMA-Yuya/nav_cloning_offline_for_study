@@ -76,6 +76,7 @@ class deep_learning:
         self.net.to(self.device)
         print(self.device)
         self.optimizer = optim.Adam(self.net.parameters(),eps=1e-2,weight_decay=5e-4)
+        #self.optimizer = optim.Adam(self.net.parameters(), lr=0.001, eps=1e-8, weight_decay=5e-4)
         #self.optimizer.setup(self.net.parameters())
         self.totensor = transforms.ToTensor()
         self.n_action = n_action
@@ -145,18 +146,16 @@ class deep_learning:
         return action_value_training[0][0].item(), loss
 
     def act(self, img):
-            # self.device = torch.device('cuda')
-            self.net.eval()
-        #<make img(x_test_ten),cmd(c_test)>
-            # x_test_ten = torch.tensor(self.transform(img),dtype=torch.float32, device=self.device).unsqueeze(0)
-            x_test_ten = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
-            x_test_ten = x_test_ten.permute(0,3,1,2)
-            #print(x_test_ten.shape,x_test_ten.device,c_test.shape,c_test.device)
-        #<test phase>
-            action_value_test = self.net(x_test_ten)
-            
-            # print("act = " ,action_value_test.item())
-            return action_value_test.item()
+        self.net.eval()
+        x_test_ten = torch.tensor(img, dtype=torch.float32, device=self.device).unsqueeze(0)
+        x_test_ten = x_test_ten.permute(0, 3, 1, 2)
+
+        action_value_test = self.net(x_test_ten)
+        
+        # 出力を -0.25～0.25 に制限
+        action_value_test = torch.tanh(action_value_test) * 0.25
+        
+        return action_value_test.item()
 
     def result(self):
             accuracy = self.accuracy

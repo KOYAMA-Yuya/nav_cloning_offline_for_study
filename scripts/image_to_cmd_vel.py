@@ -1,47 +1,77 @@
 #!/usr/bin/env python3
+from __future__ import print_function
 
 import rospy
-from geometry_msgs.msg import Twist
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
 import cv2
+from std_msgs.msg import Int8
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+from nav_cloning_pytorch import deep_learning  # deep_learningをインポート
+from skimage.transform import resize
+from geometry_msgs.msg import Twist
+import numpy as np
+import copy
 
-def image_callback(msg):
-    try:
-        # ROSのImageメッセージをOpenCV画像に変換
-        cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
+class nav_cloning_node:
+    def __init__(self):
+        rospy.init_node('nav_cloning_node', anonymous=True)
+        self.num = rospy.get_param("/nav_cloning_node/num", "1")
+        self.action_num = 1
+        self.dl = deep_learning(n_action=self.action_num)  # deep_learningクラスを初期化
+        self.bridge = CvBridge()
+        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
+        self.vel_sub = rospy.Subscriber("/nav_vel", Twist, self.callback_vel)
+        self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
+        self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+        self.cv_image = np.zeros((520, 694, 3), np.uint8)
+        self.vel = Twist()
+        self.learning = False
+        self.load_path = "/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/20250409_00:14:17/model1.pt"
         
-        # 画像処理（例えば、画像の表示）
-        cv2.imshow("Camera", cv_image)
-        cv2.waitKey(1)  # 1msだけ待機して画面を更新
+        if self.learning == False:
+            print(self.load_path)
+            self.dl.load(self.load_path)  # モデルをロード
         
-        # 画像に基づいて動作を決める例
-        move_cmd = Twist()
-        move_cmd.linear.x = 0.5
-        move_cmd.angular.z = 0.7
+        
+    def callback(self, data):
+        try:
+            self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
 
-        # /cmd_vel トピックに前進指令を送信
-        cmd_vel_pub.publish(move_cmd)
-    
-    except Exception as e:
-        rospy.logerr("Error processing image: %s", str(e))
+    def callback_vel(self, data):
+        self.vel = data
 
-def simple_cmd_vel():
-    global cmd_vel_pub, bridge
-    rospy.init_node('simple_cmd_vel_with_image', anonymous=True)
+    def loop(self):
+        if self.cv_image.size != 640 * 480 * 3: #1280 * 640 * 3:  # 画像サイズが正しいか確認
+            return
 
-    # /cmd_vel トピックに指令を出すためのパブリッシャー
-    cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-    
-    # /camera/image_raw トピックをサブスクライブ
-    rospy.Subscriber('/camera/rgb/image_raw', Image, image_callback)
-    
-    bridge = CvBridge()  # 画像をOpenCV形式に変換するためのブリッジ
-    
-    rospy.spin()  # ノードが終了するまで待機
+        # 元の画像を表示（デバッグ用）
+        cv2.imshow("Original Image", self.cv_image)
+
+        # 画像を学習時と同じサイズ (48, 64, 3) にリサイズ
+        img = cv2.resize(self.cv_image, (64, 48), interpolation=cv2.INTER_AREA)
+
+        if self.learning == False:
+            # 画像をモデルに入力して、予測された角速度を取得
+            target_action = self.dl.act(img)
+
+            # ロボットの移動指令を作成
+            self.vel.linear.x = 0.26  # 直進速度は固定
+            self.vel.angular.z = target_action  # モデルから出力された角速度を使用
+
+            # パブリッシュ
+            self.nav_pub.publish(self.vel)
+        
+        # 画像表示
+        cv2.imshow("Resized Image", img)
+        cv2.waitKey(1)
 
 if __name__ == '__main__':
-    try:
-        simple_cmd_vel()  # シンプルな動作を開始
-    except rospy.ROSInterruptException:
-        pass
+    rg = nav_cloning_node()
+    DURATION = 0.2
+    r = rospy.Rate(1 / DURATION)
+    while not rospy.is_shutdown():
+        rg.loop()
+        r.sleep()

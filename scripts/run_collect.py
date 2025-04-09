@@ -36,7 +36,7 @@ class cource_following_learning_node:
         self.image_right_sub = rospy.Subscriber("/camera_right/rgb/image_raw", Image, self.callback_right_camera)
 
         self.vel_sub = rospy.Subscriber("/cmd_vel", Twist, self.callback_vel, queue_size=10)
-        self.pose_sub = rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, self.callback_pose)
+        self.odom_sub = rospy.Subscriber("/odom", Odometry, self.callback_odom)
         self.path_sub = rospy.Subscriber("/move_base/NavfnROS/plan", Path, self.callback_path)
         self.min_distance = 0.0
         self.action = 0.0
@@ -75,21 +75,11 @@ class cource_following_learning_node:
     def capture_img(self):
             Flag = True
             try:
-                # 左カメラ画像を3つに分割して保存
-                cv2.imwrite(self.path + "img/" + self.start_time + "/left" + str(self.save_img_no) + "_" + "+5" + ".jpg", self.resize_left_left_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/left" + str(self.save_img_no) + "_" + "0" + ".jpg", self.resize_left_center_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/left" + str(self.save_img_no) + "_" + "-5" + ".jpg", self.resize_left_right_img)
-
-                # 中央カメラ画像を3つに分割して保存
-                cv2.imwrite(self.path + "img/" + self.start_time + "/center" + str(self.save_img_no) + "_" + "+5" + ".jpg", self.resize_left_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/center" + str(self.save_img_no) + "_" + "0" + ".jpg", self.resize_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/center" + str(self.save_img_no) + "_" + "-5" + ".jpg", self.resize_right_img)
-
-                # 右カメラ画像を3つに分割して保存
-                cv2.imwrite(self.path + "img/" + self.start_time + "/right" + str(self.save_img_no) + "_" + "+5" + ".jpg", self.resize_right_left_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/right" + str(self.save_img_no) + "_" + "0" + ".jpg", self.resize_right_center_img)
-                cv2.imwrite(self.path + "img/" + self.start_time + "/right" + str(self.save_img_no) + "_" + "-5" + ".jpg", self.resize_right_right_img)
-
+                #カメラ画像を保存
+                cv2.imwrite(self.path + "img/" + self.start_time + "/left" + str(self.save_img_no) + ".jpg", self.resize_left_img)
+                cv2.imwrite(self.path + "img/" + self.start_time + "/center" + str(self.save_img_no) + ".jpg", self.resize_img)
+                cv2.imwrite(self.path + "img/" + self.start_time + "/right" + str(self.save_img_no) + ".jpg", self.resize_right_img)
+                
             except:
                 print('Not save image')
                 Flag = False
@@ -128,12 +118,12 @@ class cource_following_learning_node:
     def check_distance(self):
         distance = math.sqrt((self.pose_x - self.old_pose_x)**2 + (self.pose_y - self.old_pose_y)**2)
         print("distance : ", distance)
-        if distance >= 0.1:
+        if distance >= 0.05:
             self.old_pose_x = self.pose_x
             self.old_pose_y = self.pose_y
             self.flag = True
 
-    def callback_pose(self, data):
+    def callback_odom(self, data):
         self.pose_x = data.pose.pose.position.x
         self.pose_y = data.pose.pose.position.y      
 
@@ -152,32 +142,12 @@ class cource_following_learning_node:
     def loop(self):
         self.check_distance()
         if self.flag:
-            # 画像を分割
-            self.crop_left_left_img = self.cv_left_image[20:500, 0:640]
-            self.crop_left_center_img = self.cv_left_image[20:500, 27:667]
-            self.crop_left_right_img = self.cv_left_image[20:500, 54:694]
 
-            self.crop_left_img = self.cv_image[20:500, 0:640]
-            self.crop_img = self.cv_image[20:500, 27:667]
-            self.crop_right_img = self.cv_image[20:500, 54:694]
-
-            self.crop_right_left_img = self.cv_right_image[20:500, 0:640]
-            self.crop_right_center_img = self.cv_right_image[20:500, 27:667]
-            self.crop_right_right_img = self.cv_right_image[20:500, 54:694]
-
-            # 画像リサイズ
-            self.resize_left_left_img = cv2.resize(self.crop_left_left_img, dsize=(64, 48))
-            self.resize_left_center_img = cv2.resize(self.crop_left_center_img, dsize=(64, 48))
-            self.resize_left_right_img = cv2.resize(self.crop_left_right_img, dsize=(64, 48))
-
-            self.resize_left_img = cv2.resize(self.crop_left_img, dsize=(64, 48))
-            self.resize_img = cv2.resize(self.crop_img, dsize=(64, 48))
-            self.resize_right_img = cv2.resize(self.crop_right_img, dsize=(64, 48))
-
-            self.resize_right_left_img = cv2.resize(self.crop_right_left_img, dsize=(64, 48))
-            self.resize_right_center_img = cv2.resize(self.crop_right_center_img, dsize=(64, 48))
-            self.resize_right_right_img = cv2.resize(self.crop_right_right_img, dsize=(64, 48))
-
+            # 画像リサイズ            
+            self.resize_left_img = cv2.resize(self.cv_left_image, (64, 48), interpolation=cv2.INTER_AREA)
+            self.resize_img = cv2.resize(self.cv_image, (64, 48), interpolation=cv2.INTER_AREA)
+            self.resize_right_img = cv2.resize(self.cv_right_image, (64, 48), interpolation=cv2.INTER_AREA)
+    
             self.capture_img()
             self.capture_ang()
             self.save_img_no += 1
@@ -188,8 +158,6 @@ class cource_following_learning_node:
         if self.cv_left_image.size != 694 * 520 * 3:
             return
         if self.cv_right_image.size != 694 * 520 * 3:
-            return
-        if self.vel.linear.x == 0:
             return
 
         if self.episode == 4000:
