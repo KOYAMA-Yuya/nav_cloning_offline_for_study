@@ -12,12 +12,14 @@ class CourseFollowingLearningNode:
         self.dl = deep_learning(n_action=1)
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.model_num = str(sys.argv[1])
-        self.pro = "20250409_00:14:17"  # データセットの識別名
+        self.pro = "20250419_17:10:14"  # データセットの識別名
         self.save_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/{self.pro}/model{self.model_num}.pt"
         self.ang_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/ang/{self.pro}/"
         self.img_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/img/{self.pro}/"
-        self.learn_no = 2000
-        self.data = 1080  # 使用するデータ数
+        self.learn_no = 4000
+        self.data =  616 # 使用するデータ数
+        self.BATCH_SIZE = 32
+    
         
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
         os.makedirs(f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/{self.pro}/", exist_ok=True)
@@ -25,9 +27,9 @@ class CourseFollowingLearningNode:
     def load_images(self, index):
         # 各カメラタイプに対応する角度シフトの設定
         shifts = {
-            "left": -0.17,
+            "left": -0.2, #-0.17,
             "center": 0,
-            "right": 0.17
+            "right": 0.2 #0.17
         }
 
         img_types = ["left", "center", "right"]
@@ -70,7 +72,10 @@ class CourseFollowingLearningNode:
         
         loss_log = []
         for l in range(self.learn_no):
-            loss = self.dl.trains(self.data)
+            start_time_epoch = time.time()
+            loss = self.dl.trains(self.BATCH_SIZE)
+            end_time_epoch = time.time()
+            print(f"Epoch {l + 1}, Loss: {loss}, Epoch time: {end_time_epoch - start_time_epoch:.4f} seconds")
             loss_log.append([str(loss)])
             print(f"Train step: {l}, Loss: {loss}")
         

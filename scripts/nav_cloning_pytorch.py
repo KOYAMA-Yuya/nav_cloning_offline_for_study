@@ -76,7 +76,6 @@ class deep_learning:
         self.net.to(self.device)
         print(self.device)
         self.optimizer = optim.Adam(self.net.parameters(),eps=1e-2,weight_decay=5e-4)
-        #self.optimizer = optim.Adam(self.net.parameters(), lr=0.001, eps=1e-8, weight_decay=5e-4)
         #self.optimizer.setup(self.net.parameters())
         self.totensor = transforms.ToTensor()
         self.n_action = n_action
@@ -92,7 +91,7 @@ class deep_learning:
         self.transform=transforms.Compose([transforms.ToTensor()])
         self.first_flag =True
         torch.backends.cudnn.benchmark = True
-        self.writer = SummaryWriter(log_dir="/home/koyama-yuya/nav_cloning_offline_ws/src/nav_cloning/runs",comment="log_1")
+        self.writer = SummaryWriter(log_dir="/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/runs",comment="log_1")
 
     def make_dataset(self,img,target_angle):
         # self.device = torch.device('cpu')
@@ -112,28 +111,26 @@ class deep_learning:
         # print(type(self.dataset))
 
     def trains(self, BATCH_SIZE):
-        # self.device = torch.device('cuda')
         self.net.train()
-        train_dataset = DataLoader(self.dataset, batch_size=BATCH_SIZE, generator=torch.Generator('cpu'),shuffle=True)
-        
-    #<only cpu>
-        # train_dataset = DataLoader(dataset, batch_size=BATCH_SIZE,shuffle=True)
-        
-    #<split dataset and to device>
-        for x_train, t_train in train_dataset:
-            x_train.to(self.device,non_blocking=True)
-            t_train.to(self.device,non_blocking=True)
-            break
+        train_loader = DataLoader(self.dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    #<learning>
-        self.optimizer.zero_grad()
-        y_train = self.net(x_train)
-        loss = self.criterion(y_train, t_train) 
-        loss.backward()
-        self.optimizer.step()
-        self.writer.add_scalar("loss", loss.item(), self.count)
+        epoch_loss = 0.0
+        for x_train, t_train in train_loader:
+            x_train = x_train.to(self.device)
+            t_train = t_train.to(self.device)
+
+            self.optimizer.zero_grad()
+            y_train = self.net(x_train)
+            loss = self.criterion(y_train, t_train)
+            loss.backward()
+            self.optimizer.step()
+
+            epoch_loss += loss.item()
+
+        avg_loss = epoch_loss / len(train_loader)
+        self.writer.add_scalar("loss", avg_loss, self.count)
         self.count += 1
-        return loss.item()
+        return avg_loss
 
     def act_and_trains(self, img,target_angle):
         self.make_dataset(img,target_angle)
@@ -152,8 +149,8 @@ class deep_learning:
 
         action_value_test = self.net(x_test_ten)
         
-        # 出力を -0.25～0.25 に制限
-        action_value_test = torch.tanh(action_value_test) * 0.25
+        # 出力を -0.25～0.25 に制限↓
+        #action_value_test = torch.tanh(action_value_test) * 0.25
         
         return action_value_test.item()
 

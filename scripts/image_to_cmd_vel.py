@@ -27,7 +27,8 @@ class nav_cloning_node:
         self.cv_image = np.zeros((520, 694, 3), np.uint8)
         self.vel = Twist()
         self.learning = False
-        self.load_path = "/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/20250409_00:14:17/model1.pt"
+        self.pro = "20250419_23:59:33"  # モデルファイル
+        self.load_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/{self.pro}/model1.pt"
         
         if self.learning == False:
             print(self.load_path)
@@ -49,6 +50,7 @@ class nav_cloning_node:
 
         # 元の画像を表示（デバッグ用）
         cv2.imshow("Original Image", self.cv_image)
+        cv2.waitKey(1)
 
         # 画像を学習時と同じサイズ (48, 64, 3) にリサイズ
         img = cv2.resize(self.cv_image, (64, 48), interpolation=cv2.INTER_AREA)
@@ -58,15 +60,13 @@ class nav_cloning_node:
             target_action = self.dl.act(img)
 
             # ロボットの移動指令を作成
-            self.vel.linear.x = 0.26  # 直進速度は固定
+            self.vel.linear.x = 0.2  # 直進速度は固定0.2
             self.vel.angular.z = target_action  # モデルから出力された角速度を使用
 
             # パブリッシュ
             self.nav_pub.publish(self.vel)
+
         
-        # 画像表示
-        cv2.imshow("Resized Image", img)
-        cv2.waitKey(1)
 
 if __name__ == '__main__':
     rg = nav_cloning_node()
