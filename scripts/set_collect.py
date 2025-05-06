@@ -8,251 +8,175 @@ from geometry_msgs.msg import PoseWithCovarianceStamped,Twist
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from nav_cloning_pytorch import *
-from skimage.transform import resize
 from geometry_msgs.msg import Twist
-from geometry_msgs.msg import PoseArray
-from std_msgs.msg import Int8
 from std_srvs.srv import Trigger
-from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseWithCovarianceStamped
-from std_srvs.srv import Empty
 from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Header
 
 from gazebo_msgs.srv import SetModelState
-from gazebo_msgs.srv import GetModelState
 from gazebo_msgs.msg import ModelState
 
 import math
-import tf
+import tf.transformations
 
 from std_srvs.srv import SetBool, SetBoolResponse
 import csv
 import os
 import time
-import copy
 import sys
+import datetime
 
-class cource_following_learning_node:
+
+class GoalAngleSimulator:
     def __init__(self):
-        rospy.init_node('cource_following_learning_node', anonymous=True)
-        self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
-        # self.image_left_sub = rospy.Subscriber("/camera_left/rgb/image_raw", Image, self.callback_left_camera)
-        # self.image_right_sub = rospy.Subscriber("/camera_right/rgb/image_raw", Image, self.callback_right_camera)
-        self.vel_sub = rospy.Subscriber("/nav_vel", Twist, self.callback_vel)
-        self.amcl_pose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=1)
-        self.simple_goal_pub = rospy.Publisher('move_base_simple/goal', PoseStamped, queue_size=10)
-        # self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self.min_distance = 0.0
-        self.action = 0.0
-        self.vel = Twist()
-        self.cv_image = np.zeros((480,640,3), np.uint8)
-        self.cv_left_image = np.zeros((480,640,3), np.uint8)
-        self.cv_right_image = np.zeros((480,640,3), np.uint8)
-        self.init = True
-        self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/'
-        self.collect_data_srv = rospy.Service('/collect_data', Trigger, self.collect_data)
-        self.save_img_no = 0
-        self.goal_rate = 3
-        self.goal_no = 24
-        self.offset_ang = 0      
-        self.csv_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/path/'
-        self.pos_list = []
-        self.cur_pos = []
-        self.pos = PoseWithCovarianceStamped()
-        self.g_pos = PoseStamped()
-        self.orientation = 0
-        self.r = rospy.Rate(10)
-        self.capture_rate = rospy.Rate(0.5)
+        rospy.init_node('goal_angle_simulator', anonymous=True)
+
         rospy.wait_for_service('/gazebo/set_model_state')
-        self.state = ModelState()
-        self.state.model_name = 'mobile_base'
-        os.makedirs(self.path + "img/" + self.start_time)
-        os.makedirs(self.path + "ang/" + self.start_time)
+        self.set_state_srv = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+
+        self.amcl_pose_pub = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=1)
+        self.goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=1)
+
+        rospy.Subscriber('/nav_vel', Twist, self.nav_vel_callback)
+        rospy.Subscriber('/camera/rgb/image_raw', Image, self.image_callback)
         
+        # 画像関連の準備
+        self.bridge = CvBridge()
+        self.cv_image = None  # カメラ画像を格納する変数
 
-        with open(self.csv_path + '00_02_fix.csv', 'r') as fs:
-        # with open(self.csv_path + 'capture_pos_fix.csv', 'r') as fs:
-            for row in fs:
-                self.pos_list.append(row)
+        # 角速度の保存用
+        self.latest_ang_vel = 0.0
 
-    def capture_img(self):
-            Flag = True
-            try:  
-                cv2.imwrite(self.path + "img/" + self.start_time + "/center" + str(self.save_img_no) + "_" + self.ang_no + ".jpg", self.cv_image)
-            except:
-                print('Not save image')
-                Flag = False
-            finally:
-                if Flag:
-                    print('Save image Number:', self.save_img_no)
+        # CSV読み込み
+        csv_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/path/00_02_fix.csv'
+        with open(csv_path, 'r') as f:
+            self.pos_list = [line.strip().split(',') for line in f]
 
-    def capture_ang(self):
-            line = [str(self.save_img_no), str(self.action)]
-            with open(self.path + "ang/" + self.start_time + '/ang.csv', 'a') as f:
-                writer = csv.writer(f, lineterminator='\n')
-                writer.writerow(line)
-                print("ang_vel_x: ", self.action)
-    
-    def read_csv(self):
-            self.cur_pos = self.pos_list[self.save_img_no]
-            pos = self.cur_pos.split(',')
-            x = float(pos[1])
-            y = float(pos[2])
-            theta = float(pos[3])
-            # print('Moving_pose:', x, y, theta)
-            return x, y, theta
+        self.offset_x = 10.71378
+        self.offset_y = 17.17456
+        self.goal_offset = 10  # Nステップ後をゴールに
 
-    def simple_goal(self):
-        list_num = self.save_img_no + self.goal_no
-        if list_num < len(self.pos_list):
-            self.cur_pos = self.pos_list[list_num]
-            simple_pos = self.cur_pos.split(',')
-            x = float(simple_pos[1])
-            y = float(simple_pos[2])
+        self.image_save_no = 0  # 画像保存用の番号
 
-            self.g_pos.header.stamp = rospy.Time.now()
+        # 保存先ディレクトリ作成
+        self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
+        
+        self.image_save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/img/'  + self.start_time
+        self.ang_save_path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/ang/'  + self.start_time
+        os.makedirs(self.image_save_path)
+        os.makedirs(self.ang_save_path)
+        
+        # 角速度を保存するCSVファイルの準備
+        self.csv_file = open(self.ang_save_path + '/ang.csv', 'w')
+        self.csv_writer = csv.writer(self.csv_file)
+        
+        self.run()
 
-            self.g_pos.header.frame_id = 'map'
-            #willow#
-            # self.g_pos.pose.position.x = x - 11.252
-            # self.g_pos.pose.position.y = y - 16.70
-            self.g_pos.pose.position.x = x - 10.71378
-            self.g_pos.pose.position.y = y - 17.17456
-            self.g_pos.pose.position.z = 0
+    def nav_vel_callback(self, msg):
+        self.latest_ang_vel = msg.angular.z
+        print(f"[angular.z] = {self.latest_ang_vel:.4f}")
 
-            self.g_pos.pose.orientation.x = 0 
-            self.g_pos.pose.orientation.y = 0
-            self.g_pos.pose.orientation.z = 0
-            self.g_pos.pose.orientation.w = 0.999
-            # self.g_pos.pose.orientation.w = 1.001
-
-            self.simple_goal_pub.publish(self.g_pos)
-
-        else:
-            pass
-
-    def robot_moving(self, x, y, angle):
-            #amcl
-            #replace_pose = PoseWithCovarianceStamped()
-            self.pos.header.stamp = rospy.Time.now()
-
-            self.pos.header.frame_id = 'map'
-            #willow#
-            # self.pos.pose.pose.position.x = x - 11.252
-            # self.pos.pose.pose.position.y = y - 16.70
-            self.pos.pose.pose.position.x = x - 10.71378
-            self.pos.pose.pose.position.y = y - 17.17456
-
-            quaternion_ = tf.transformations.quaternion_from_euler(0, 0, angle)
-
-            self.pos.pose.pose.orientation.x = quaternion_[0]
-            self.pos.pose.pose.orientation.y = quaternion_[1]
-            self.pos.pose.pose.orientation.z = quaternion_[2]
-            self.pos.pose.pose.orientation.w = quaternion_[3]
-            self.pos.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
-
-            # self.pos.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853892326654787]
-            
-            # self.pos.pose.covariance = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853892326654787]
-
-            # self.amcl_pose_pub.publish(self.pos)
-            
-            #gazebo
-            for self.offset_ang in [-5, 0, 5]:
-            # for self.offset_ang in [0]:
-                the = angle + math.radians(self.offset_ang)
-                the = the - 2.0 * math.pi if the >  math.pi else the
-                the = the + 2.0 * math.pi if the < -math.pi else the
-                self.state.pose.position.x = x
-                self.state.pose.position.y = y
-                quaternion = tf.transformations.quaternion_from_euler(0, 0, the)
-                self.state.pose.orientation.x = quaternion[0]
-                self.state.pose.orientation.y = quaternion[1]
-                self.state.pose.orientation.z = quaternion[2]
-                self.state.pose.orientation.w = quaternion[3]
-
-                if self.offset_ang == -5:
-                    self.ang_no = "-5"
-
-                if self.offset_ang == 0:
-                    self.ang_no = "0"
- 
-                if self.offset_ang == +5:
-                    self.ang_no = "+5"
-
-                try:
-                    set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-                    resp = set_state(self.state)
-
-                    if self.offset_ang == 0 and self.save_img_no % self.goal_rate == 0:
-                        self.simple_goal()
-                        self.amcl_pose_pub.publish(self.pos)
-
-                    #-0.2m, -5degでの角速度を正しく収集するためのsleep#
-                    # if self.offset_ang == -5 and self.save_img_no % self.goal_rate == 2:
-                    #     rospy.Rate(20).sleep()
-                  
-                    #test
-                    self.capture_img()
-                    self.capture_ang()
-
-                except rospy.ServiceException as e:
-                    print("Service call failed: %s" % e)
-                #0.3sec sleep
-                self.r.sleep()
-                self.r.sleep()
-                self.r.sleep()
-
-            #0.3sec sleep
-            self.r.sleep()
-            self.r.sleep()
-            self.r.sleep()
-    
-    def collect_data(self, data):
-        rospy.wait_for_service('/collect_data')
-        service = rospy.ServiceProxy('/collect_data', Trigger)
-        self.simple_goal()
-
-        for i in range(len(self.pos_list)):
-            x, y, theta = self.read_csv()
-            self.robot_moving(x, y, theta)
-            print("current_position:", x, y, theta)
-            self.save_img_no += 1
-            self.capture_rate.sleep()
-
-            if i == len(self.pos_list):
-                os.system('killall roslaunch')
-                sys.exit()
-
-    def callback(self, data):
+    def image_callback(self, msg):
         try:
-            self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         except CvBridgeError as e:
-            print(e)
+            rospy.logerr(f"Image conversion failed: {e}")
 
-    # def callback_left_camera(self, data):
-    #     try:
-    #         self.cv_left_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-    #     except CvBridgeError as e:
-    #         print(e)
+    def move_robot_pose(self, x, y, theta):
+        # Gazebo
+        state = ModelState()
+        state.model_name = 'turtlebot3'
+        state.pose.position.x = x
+        state.pose.position.y = y
+        quat = tf.transformations.quaternion_from_euler(0, 0, theta)
+        state.pose.orientation.x = quat[0]
+        state.pose.orientation.y = quat[1]
+        state.pose.orientation.z = quat[2]
+        state.pose.orientation.w = quat[3]
 
-    # def callback_right_camera(self, data):
-    #     try:
-    #         self.cv_right_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-    #     except CvBridgeError as e:
-    #         print(e)
+        try:
+            self.set_state_srv(state)
+        except rospy.ServiceException as e:
+            rospy.logerr("SetModelState failed: %s" % e)
 
-    def callback_vel(self, data):
-        self.vel = data
-        self.action = self.vel.angular.z
-        
+        # AMCL
+        amcl = PoseWithCovarianceStamped()
+        amcl.header.stamp = rospy.Time.now()
+        amcl.header.frame_id = "map"
+        amcl.pose.pose.position.x = x - self.offset_x
+        amcl.pose.pose.position.y = y - self.offset_y
+        amcl.pose.pose.orientation.x = quat[0]
+        amcl.pose.pose.orientation.y = quat[1]
+        amcl.pose.pose.orientation.z = quat[2]
+        amcl.pose.pose.orientation.w = quat[3]
+        amcl.pose.covariance[-1] = 0.01
+        self.amcl_pose_pub.publish(amcl)
 
+    def publish_goal(self, x, y):
+        goal = PoseStamped()
+        goal.header.stamp = rospy.Time.now()
+        goal.header.frame_id = "map"
+        goal.pose.position.x = x - self.offset_x
+        goal.pose.position.y = y - self.offset_y
+        goal.pose.orientation.w = 1.0
+        self.goal_pub.publish(goal)
+
+    def save_image(self, count, offset_ang):
+        # 画像を保存する関数
+        if self.cv_image is not None:
+            filename = f"{self.image_save_path}/center{count}_{offset_ang}.jpg"
+            try:
+                self.resize_img = cv2.resize(self.cv_image, (64, 48), interpolation=cv2.INTER_AREA)
+                cv2.imwrite(filename, self.resize_img)
+            except Exception as e:
+                rospy.logwarn(f"Failed to save image: {e}")
+            return filename
+        else:
+            rospy.logwarn("No image available to save.")
+            return None
+
+    def save_to_csv(self, step, ang_vel, image_filename):
+        # CSVにデータを保存する関数
+        self.csv_writer.writerow([step, ang_vel, image_filename])
+
+    def run(self):
+        rate = rospy.Rate(0.5)  # 2秒ごと（AMCLやmove_baseが安定するように）
+
+        for i in range(len(self.pos_list) - self.goal_offset):
+            
+            for offset_ang in [-5, 0, +5]:
+            
+                # 現在位置
+                cur = self.pos_list[i]
+                x, y, theta = float(cur[1]), float(cur[2]), float(cur[3])
+                theta += math.radians(offset_ang)  # ← ここで傾ける
+                self.move_robot_pose(x, y, theta)
+
+                rospy.sleep(1.0)  # AMCL反映のため
+
+                # ゴール位置（中央レーンのみをゴールに）
+                for j in range(i + 0, len(self.pos_list)):
+                    if (j - i) >= self.goal_offset and (j % 3 == 0):  # 中央レーン
+                        gx, gy = float(self.pos_list[j][1]), float(self.pos_list[j][2])
+                        self.publish_goal(gx, gy)
+                        break
+
+                rospy.sleep(2.0)  # move_baseがnav_velを出すのを待つ
+
+                # 画像保存（offset_angを使ってファイル名を指定）
+                image_filename = self.save_image(self.image_save_no, offset_ang)
+
+                # CSVに保存
+                self.save_to_csv(i, self.latest_ang_vel, image_filename)
+
+                print(f"[Step {i}] offset_ang: {offset_ang}°, 角速度: {self.latest_ang_vel:.4f} rad/s\n")
+                self.image_save_no += 1
+
+                rate.sleep()
+
+        # CSVファイルを閉じる
+        self.csv_file.close()
+    
 if __name__ == '__main__':
-    rg = cource_following_learning_node()
-    DURATION = 0.2
-    r = rospy.Rate(1 / DURATION)
-    while not rospy.is_shutdown():
-        # rg.loop()
-        r.sleep()
+    GoalAngleSimulator()

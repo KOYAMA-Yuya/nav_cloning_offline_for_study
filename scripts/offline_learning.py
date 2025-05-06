@@ -1,126 +1,103 @@
 #!/usr/bin/env python3
-from nav_cloning_pytorch import *
-import cv2
-import csv
-from skimage.transform import resize
-import time
 import os
 import sys
+import csv
+import time
+import cv2
+import random
+import roslib
+import numpy as np
+from nav_cloning_pytorch import deep_learning
+from skimage.transform import resize
 
-class cource_following_learning_node:
+class CourseFollowingLearningNode:
     def __init__(self):
         self.dl = deep_learning(n_action=1)
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
-        # os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/" + self.start_time)
         self.model_num = str(sys.argv[1])
-        self.pro = "test2"
-        self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro)+"/model"+str(self.model_num)+".pt")
-        # self.save_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/01/model"+str(self.model_num)+".pt")
-        self.ang_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/ang/"+str(self.pro)+"/")
-        # self.img_right_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/right")
-        self.img_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/center")
-        # self.img_left_path = ("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/img/"+str(self.pro)+"/left")
-        self.learn_no = 4000
-        self.pos_no = 0
-        self.count = 0
-        self.data = 1688
-        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/model/"+str(self.pro), exist_ok=True)
-        os.makedirs("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/", exist_ok=True)
+        self.pro = "20250506_00:14:39"  # データセットの識別名
+
+        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/'
+        self.save_path = self.path + f"model/{self.pro}/model{self.model_num}.pt"
+        self.ang_path = self.path + f"ang/{self.pro}/"
+        self.img_path = self.path + f"img/{self.pro}/center"
+        self.loss_path =  self.path + f"loss/{self.pro}/model{self.model_num}.csv"
         
-        # self.dl.save("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/")
+        self.data = 1695  # 使用するデータ数
+        self.BATCH_SIZE = 16 # バッチサイズを指定
+        self.EPOCHS = 300 # エポック数を指定
+        
+        os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
+        os.makedirs(self.path + f"/loss/{self.pro}/", exist_ok=True)
+
+    def load_images(self, index, parallax):
+        
+        images = []
+
+        # 画像ファイルのパスを作成
+        img_file = f"{self.img_path}{index}_{parallax}.jpg"
+        img = cv2.imread(img_file)
+        
+        if img is None:
+            print(f"Warning: Failed to load {img_file}")
+        
+        images.append(img)
+            
+        return images
+        
+    def load_angles(self):
+        angles = []
+        with open(self.ang_path + 'ang.csv', 'r') as f:
+            for row in csv.reader(f):
+                _, tar_ang = row
+                angles.append(float(tar_ang))
+        return angles
 
     def learn(self):
-        ang_list = []
-        # img_right_list = []
-        img_list = []
-        # img_left_list = []
+        ang_list = self.load_angles()
+        data_entries = []
 
+        # 全データ（画像と角度）をリストに格納
+        ang_idx = 0
         for i in range(self.data):
-            # if i % 3 == 0:
-            #     pass
-            # else:
-                # for j in ["0"]:
-                for j in ["-5", "0", "+5"]:
-                    # img_right = cv2.imread(self.img_right_path + str(i) + "_" + j + ".jpg")
-                    img = cv2.imread(self.img_path + str(i) + "_" + j + ".jpg")
-                    # img_left = cv2.imread(self.img_left_path + str(i) + "_" + j + ".jpg")
-                    # img_right_list.append(img_right)
-                    img_list.append(img)
-                    # img_left_list.append(img_left) 
+            for parallax in ["-5", "0", "5"]:
+                data_entries.append((i, parallax, ang_idx))
+                ang_idx += 1
 
-                    self.count += 1
+        # ランダムにシャッフル
+        random.shuffle(data_entries)
 
-        with open(self.ang_path + 'ang.csv', 'r') as f:
-        # with open(self.ang_path + 'mazemaze.csv', 'r') as f:
-            for row in csv.reader(f):
-                no, tar_ang = row
-                # if float(no) % 3 == 0:
-                #     pass
-                # else:    
-                ang_list.append(float(tar_ang))
-        
-        for k in range(self.count):
-        # for k in range(self.data):
-            # img_right = img_right_list[k]
-            img = img_list[k]
-            # img_left = img_left_list[k]
-            target_ang = ang_list[k]
-
-            # img_right = resize(img_right, (48, 64), mode='constant')
-            # r, g, b = cv2.split(img_right)
-            # imgobj_right = np.asanyarray([r, g, b])
-
-            img = resize(img, (48, 64), mode='constant')
-            r, g, b = cv2.split(img)
-            imgobj = np.asanyarray([r, g, b])
-
-            # img_left = resize(img_left, (48, 64), mode='constant')
-            # r, g, b = cv2.split(img_left)
-            # imgobj_left = np.asanyarray([r, g, b])
+        # シャッフル後にmake_datasetで追加
+        now_dataset_num = 0
+        for i, parallax, ang_idx in data_entries:
+            images = self.load_images(i, parallax)
+            if not images:
+                continue
+            target_ang = ang_list[ang_idx]
+            self.dl.make_dataset(images, target_ang)
+            now_dataset_num += 1
+            print(f"Shuffled Dataset: {now_dataset_num}, Parallax: {parallax}, Target Angle: {target_ang}")
             
-            """
-            self.dl.make_dataset(imgobj_right, target_ang + 0.2)
-            self.dl.make_dataset(imgobj, target_ang)
-            self.dl.make_dataset(imgobj_left, target_ang - 0.2)
-            """
+        loss_log = []
 
-            # if 884 <= k <= 1092:
-            #     for n in range(3):
-            #             self.dl.make_dataset(img_right, target_ang + 0.2)
-            #             self.dl.make_dataset(img, target_ang)
-            #             self.dl.make_dataset(img_left, target_ang - 0.2)
-            #             print("dataset:" + str(k))
+        for epoch in range(self.EPOCHS):
+            start_time_epoch = time.time()
+            loss = self.dl.trains(self.BATCH_SIZE)
+            end_time_epoch = time.time()
+            print(f"Epoch {epoch + 1}, Time: {end_time_epoch - start_time_epoch:.4f}s, Loss: {loss}")
+            loss_log.append([str(loss)])
 
-            # if k == 1093:
-            #     print("--------------------")
-            #     print("coner learning end!!")
-            #     print("--------------------")
-            #     pass
-            # else:
+        # lossを保存
+        with open(self.loss_path, 'a') as fw:
+            writer = csv.writer(fw, lineterminator='\n')
+            writer.writerows(loss_log)
 
-            # for n in range(3):
-            self.dl.make_dataset(img, target_ang)
-            print("dataset:" + str(k))
-                
-            # self.dl.make_dataset(img_right, target_ang + 0.2)
-            
-            # self.dl.make_dataset(img_left, target_ang - 0.2)
-            
-        # joblib.dump((self.dataset_right, self.dataset_center, self.dataset_left), open('/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'wb'), compress=6)
-
-        # self.dataset_right, self.dataset_center, self.dataset_left =joblib.load(open('/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/result/dataset/dataset.pkl', 'rb'))
-        for l in range(self.learn_no):
-            loss = self.dl.trains(self.count)
-            print("train" + str(l))
-            with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/"+str(self.pro)+"/"+str(self.model_num)+".csv", 'a') as fw:
-            # with open("/home/yuya/nav_cloning_offline_ws/src/nav_cloning/data/loss/01/"+str(self.model_num)+".csv", 'a') as fw:
-                writer = csv.writer(fw, lineterminator='\n')
-                line = [str(loss)]
-                writer.writerow(line)
+        # モデルの保存
         self.dl.save(self.save_path)
+        print(f"モデル保存完了: {self.save_path}")
+
         sys.exit()
 
 if __name__ == '__main__':
-    rg = cource_following_learning_node()
-    rg.learn()
-         
+    node = CourseFollowingLearningNode()
+    node.learn()

@@ -27,7 +27,7 @@ class nav_cloning_node:
         self.cv_image = np.zeros((520, 694, 3), np.uint8)
         self.vel = Twist()
         self.learning = False
-        self.pro = "20250419_23:59:33"  # モデルファイル
+        self.pro = "20250506_00:14:39"  # モデルファイル
         self.load_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/{self.pro}/model1.pt"
         
         if self.learning == False:
