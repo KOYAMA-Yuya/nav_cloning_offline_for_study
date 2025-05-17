@@ -23,7 +23,7 @@ class CourseFollowingLearningNode:
 
         self.data = 645  # 使用するデータ数
         self.BATCH_SIZE = 16 # バッチサイズを指定
-        self.EPOCHS = 200 # エポック数を指定
+        self.EPOCHS = 180 # エポック数を指定
         
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
         os.makedirs(self.path + f"/loss/{self.pro}/", exist_ok=True)
