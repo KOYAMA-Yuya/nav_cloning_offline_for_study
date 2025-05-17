@@ -31,8 +31,6 @@ class CourseFollowingLearningNode:
         os.makedirs(self.path + f"/loss/{self.pro}/", exist_ok=True)
 
     def load_images(self, index, parallax):
-        
-        images = []
 
         # 画像ファイルのパスを作成
         img_file = f"{self.img_path}{index}_{parallax}.jpg"
@@ -40,10 +38,8 @@ class CourseFollowingLearningNode:
         
         if img is None:
             print(f"Warning: Failed to load {img_file}")
-        
-        images.append(img)
             
-        return images
+        return img
         
     def load_angles(self):
         angles = []
@@ -61,7 +57,8 @@ class CourseFollowingLearningNode:
         ang_idx = 0
         for i in range(self.data):
             for parallax in ["-5", "0", "5"]:
-                data_entries.append((i, parallax, ang_idx))
+                if parallax ==  "-5":
+                    data_entries.append((i, parallax, ang_idx))
                 ang_idx += 1
 
         # ランダムにシャッフル
@@ -70,13 +67,13 @@ class CourseFollowingLearningNode:
         # シャッフル後にmake_datasetで追加
         now_dataset_num = 0
         for i, parallax, ang_idx in data_entries:
-            images = self.load_images(i, parallax)
-            if not images:
+            img = self.load_images(i, parallax)
+            if img is None:
                 continue
             target_ang = ang_list[ang_idx]
-            self.dl.make_dataset(images, target_ang)
+            self.dl.make_dataset(img, target_ang)
             now_dataset_num += 1
-            print(f"Shuffled Dataset: {now_dataset_num}, Parallax: {parallax}, Target Angle: {target_ang}")
+            print(f"Model {self.model_num}, Dataset: {now_dataset_num}, Parallax: {parallax}, Target Angle: {target_ang}")
             
         loss_log = []
 
@@ -84,7 +81,7 @@ class CourseFollowingLearningNode:
             start_time_epoch = time.time()
             loss = self.dl.trains(self.BATCH_SIZE)
             end_time_epoch = time.time()
-            print(f"Epoch {epoch + 1}, Time: {end_time_epoch - start_time_epoch:.4f}s, Loss: {loss}")
+            print(f"Model {self.model_num}, Epoch {epoch + 1}, Time: {end_time_epoch - start_time_epoch:.4f}s, Loss: {loss}")
             loss_log.append([str(loss)])
 
         # lossを保存

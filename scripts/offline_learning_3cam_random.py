@@ -4,6 +4,7 @@ import sys
 import csv
 import time
 import cv2
+import roslib
 import random
 import numpy as np
 from nav_cloning_pytorch import deep_learning
@@ -14,15 +15,18 @@ class CourseFollowingLearningNode:
         self.start_time = time.strftime("%Y%m%d_%H:%M:%S")
         self.model_num = str(sys.argv[1])
         self.pro = "20250419_23:59:33"  # データセットの識別名
-        self.save_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/{self.pro}/model{self.model_num}.pt"
-        self.ang_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/ang/{self.pro}/"
-        self.img_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/img/{self.pro}/"
+        self.path = roslib.packages.get_pkg_dir('nav_cloning') + '/data/'
+        self.save_path = self.path + f"model/{self.pro}/model{self.model_num}.pt"
+        self.ang_path = self.path + f"ang/{self.pro}/"
+        self.img_path = self.path + f"img/{self.pro}/"
+        self.loss_path =  self.path + f"loss/{self.pro}/model{self.model_num}.csv"
+
         self.data = 1254  # 使用するデータ数
         self.BATCH_SIZE = 16 # バッチサイズを指定
         self.EPOCHS = 100 # エポック数を指定
         
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
-        os.makedirs(f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/{self.pro}/", exist_ok=True)
+        os.makedirs(self.path + f"/loss/{self.pro}/", exist_ok=True)
 
     def load_images(self, index):
         shifts = {
@@ -42,9 +46,6 @@ class CourseFollowingLearningNode:
             if img is None:
                 print(f"Warning: Failed to load {img_file}")
                 continue
-
-            # 画像を48x64にリサイズ
-            img = cv2.resize(img, (64, 48))  # 幅64, 高さ48にリサイズ
 
             images.append((img, angle_shift))
 
@@ -87,8 +88,7 @@ class CourseFollowingLearningNode:
             loss_log.append([str(loss)])
 
         # lossの保存
-        loss_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/loss/{self.pro}/{self.model_num}.csv"
-        with open(loss_path, 'a') as fw:
+        with open(self.loss_path, 'a') as fw:
             writer = csv.writer(fw, lineterminator='\n')
             writer.writerows(loss_log)
 

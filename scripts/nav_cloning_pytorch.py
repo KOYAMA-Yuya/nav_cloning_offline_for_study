@@ -4,7 +4,6 @@ import os
 import time
 from os.path import expanduser
 
-
 import torch
 import torchvision
 import torch.nn as nn
@@ -94,23 +93,21 @@ class deep_learning:
         self.writer = SummaryWriter(log_dir="/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/runs",comment="log_1")
 
     def make_dataset(self,img,target_angle):
-        # img: List of np.ndarray (e.g., [center], or [left, center, right])
-        img_np = np.array(img)  # shape: (N, H, W, C)
-        img_np = img_np.transpose(0, 3, 1, 2)  # → (N, C, H, W)
-        img_tensor = torch.tensor(img_np, dtype=torch.float32, device=self.device)
-
-        # 各画像に対応するターゲット角度を繰り返す（必要に応じて補正可）
-        target_tensor = torch.tensor([target_angle] * img_tensor.shape[0], dtype=torch.float32, device=self.device).unsqueeze(1)
-
+        # self.device = torch.device('cpu')
         if self.first_flag:
-            self.x_cat = img_tensor
-            self.t_cat = target_tensor
-            self.first_flag = False
-        else:
-            self.x_cat = torch.cat([self.x_cat, img_tensor], dim=0)
-            self.t_cat = torch.cat([self.t_cat, target_tensor], dim=0)
-
-        self.dataset = TensorDataset(self.x_cat, self.t_cat)
+            self.x_cat = torch.tensor(img,dtype=torch.float32, device=self.device).unsqueeze(0)
+            self.x_cat=self.x_cat.permute(0,3,1,2)
+            self.t_cat = torch.tensor([target_angle],dtype=torch.float32,device=self.device).unsqueeze(0)
+            self.first_flag =False
+        x = torch.tensor(img,dtype =torch.float32, device=self.device).unsqueeze(0)
+        x=x.permute(0,3,1,2)
+        t = torch.tensor([target_angle],dtype=torch.float32,device=self.device).unsqueeze(0)
+        self.x_cat =torch.cat([self.x_cat,x],dim=0)
+        self.t_cat =torch.cat([self.t_cat,t],dim=0)
+        
+    #<make dataset>
+        self.dataset = TensorDataset(self.x_cat,self.t_cat)
+        # print(type(self.dataset))
 
     def trains(self, BATCH_SIZE):
         self.net.train()

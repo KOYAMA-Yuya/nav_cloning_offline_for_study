@@ -10,6 +10,7 @@ from nav_cloning_pytorch import deep_learning  # deep_learningをインポート
 from skimage.transform import resize
 from geometry_msgs.msg import Twist
 import numpy as np
+import roslib
 import copy
 
 class nav_cloning_node:
@@ -19,7 +20,8 @@ class nav_cloning_node:
         self.action_num = 1
         self.dl = deep_learning(n_action=self.action_num)  # deep_learningクラスを初期化
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
+        self.image_sub = rospy.Subscriber("/camera/lane1/center/rgb/image_raw", Image, self.callback)
+        #self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
         self.vel_sub = rospy.Subscriber("/nav_vel", Twist, self.callback_vel)
         self.action_pub = rospy.Publisher("action", Int8, queue_size=1)
         self.nav_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -27,8 +29,8 @@ class nav_cloning_node:
         self.cv_image = np.zeros((520, 694, 3), np.uint8)
         self.vel = Twist()
         self.learning = False
-        self.pro = "20250506_00:14:39"  # モデルファイル
-        self.load_path = f"/home/koyama-yuya/ros_ws/nav_cloning_offline_for_study_ws/src/nav_cloning/data/model/{self.pro}/model1.pt"
+        self.pro = "20250517_12:49:45"  # モデルファイル run_collect→"20250419_23:59:33" set"20250506_00:14:39" 9cam_run "20250517_12:49:45"
+        self.load_path = roslib.packages.get_pkg_dir('nav_cloning') + f'/data/model/{self.pro}/model1.pt'
         
         if self.learning == False:
             print(self.load_path)
